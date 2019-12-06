@@ -178,11 +178,11 @@ module.exports = {
         return parentId ? getTagsForVersion(parentId, version, registry, registryPath)[0] : null;
     },
 
-    getUpdatedTag: (tag, expectedRegistry, expectedRegistryPath, version, registry, registryPath) => {
-        registry = registry || expectedRegistry;
-        registryPath = registryPath || expectedRegistryPath;
-        const captureGroups = new RegExp(`${expectedRegistry}/${expectedRegistryPath}/(.+:.+)`).exec(tag);
-        return getTagsForVersion(definitionTagLookup[`ANY/ANY/${captureGroups[1]}`], version, registry, registryPath)[0];
+    getUpdatedTag: (currentTag, currentRegistry, currentRegistryPath, updatedVersion, updatedRegistry, updatedRegistryPath) => {
+        updatedRegistry = updatedRegistry || currentRegistry;
+        updatedRegistryPath = updatedRegistryPath || currentRegistryPath;
+        const captureGroups = new RegExp(`${currentRegistry}/${currentRegistryPath}/(.+:.+)`).exec(currentTag);
+        return getTagsForVersion(definitionTagLookup[`ANY/ANY/${captureGroups[1]}`], updatedVersion, updatedRegistry, updatedRegistryPath)[0];
     },
 
     // Return just the manor and minor version of a release number
