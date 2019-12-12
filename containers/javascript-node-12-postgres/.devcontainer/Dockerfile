@@ -5,10 +5,10 @@
 
 FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:12
 
-# The node image comes with a base non-root 'node' user which this Dockerfile
-# gives sudo access. However, for Linux, this user's GID/UID must match your local
-# user UID/GID to avoid permission issues with bind mounts. Update USER_UID / USER_GID 
-# if yours is not 1000. See https://aka.ms/vscode-remote/containers/non-root-user.
+# The node image includes a non-root user with sudo access. Use the 
+# "remoteUser" property in devcontainer.json to use it. On Linux, update 
+# these values to ensure the container user's UID/GID matches your local values.
+# See https://aka.ms/vscode-remote/containers/non-root-user for details.
 ARG USERNAME=node
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID

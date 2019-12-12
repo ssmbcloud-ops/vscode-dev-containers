@@ -5,10 +5,10 @@
 
 FROM rust:1
 
-# This Dockerfile adds a non-root 'vscode' user with sudo access. However, for Linux,
-# this user's GID/UID must match your local user UID/GID to avoid permission issues
-# with bind mounts. Update USER_UID / USER_GID if yours is not 1000. See
-# https://aka.ms/vscode-remote/containers/non-root-user for details.
+# This Dockerfile adds a non-root user with sudo access. Use the "remoteUser"
+# property in devcontainer.json to use it. On Linux, the container user's GID/UIDs
+# will be updated to match your local UID/GID (when using the dockerFile property).
+# See https://aka.ms/vscode-remote/containers/non-root-user for details.
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -23,12 +23,12 @@ RUN apt-get update \
     # Verify git, needed tools installed
     && apt-get -y install git iproute2 procps lsb-release \
     #
-    # Install other dependencies
-    && apt-get install -y lldb \
+    # Install lldb, vadimcn.vscode-lldb VSCode extension dependencies
+    && apt-get install -y lldb python3-minimal libpython3.7 \
     #
     # Install Rust components
-    && rustup update \
-    && rustup component add rls rust-analysis rust-src rustfmt clippy \
+    && rustup update 2>&1 \
+    && rustup component add rls rust-analysis rust-src rustfmt clippy 2>&1 \
     #
     # Create a non-root user to use if preferred - see https://aka.ms/vscode-remote/containers/non-root-user.
     && groupadd --gid $USER_GID $USERNAME \

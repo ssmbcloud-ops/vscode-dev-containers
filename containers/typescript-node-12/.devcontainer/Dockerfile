@@ -5,10 +5,12 @@
 
 FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:12
 
-# The node image comes with a base non-root 'node' user which this Dockerfile
-# gives sudo access. However, for Linux, this user's GID/UID must match your local
-# user UID/GID to avoid permission issues with bind mounts. Update USER_UID / USER_GID 
-# if yours is not 1000. See https://aka.ms/vscode-remote/containers/non-root-user.
+# The javascript-node image includes a non-root node user with sudo access. Use 
+# the "remoteUser" property in devcontainer.json to use it. On Linux, the container 
+# user's GID/UIDs will be updated to match your local UID/GID when using the image
+# or dockerFile property. Update USER_UID/USER_GID below if you are using the
+# dockerComposeFile property or want the image itself to start with different ID
+# values. See https://aka.ms/vscode-remote/containers/non-root-user for details.
 ARG USERNAME=node
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -16,7 +18,8 @@ ARG USER_GID=$USER_UID
 # Alter node user as needed, install tslint, typescript. eslint is installed by javascript image
 RUN if [ "$USER_GID" != "1000" ] || [ "$USER_UID" != "1000" ]; then \
         groupmod --gid $USER_GID $USERNAME \
-        && usermod --uid $USER_UID --gid $USER_GID $USERNAME; \
+        && usermod --uid $USER_UID --gid $USER_GID $USERNAME \
+        && chown -R $USER_UID:$USER_GID /home/$USERNAME; \
     fi \
     #
     # Install tslint, typescript. eslint is installed by javascript image
