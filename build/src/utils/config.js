@@ -182,7 +182,14 @@ module.exports = {
         updatedRegistry = updatedRegistry || currentRegistry;
         updatedRegistryPath = updatedRegistryPath || currentRegistryPath;
         const captureGroups = new RegExp(`${currentRegistry}/${currentRegistryPath}/(.+:.+)`).exec(currentTag);
-        return getTagsForVersion(definitionTagLookup[`ANY/ANY/${captureGroups[1]}`], updatedVersion, updatedRegistry, updatedRegistryPath)[0];
+        const updatedTags = getTagsForVersion(definitionTagLookup[`ANY/ANY/${captureGroups[1]}`], updatedVersion, updatedRegistry, updatedRegistryPath);
+        if(updatedTags && updatedTags.length > 0) {
+            console.log(`      Updating ${currentTag}\n      to ${updatedTags[0]}`);
+            return updatedTags[0];
+        }
+        // In the case where this is already a tag with a version number in it,
+        // we won't get an updated tag returned, so we'll just reuse the current tag.
+        return currentTag;
     },
 
     // Return just the manor and minor version of a release number

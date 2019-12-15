@@ -50,11 +50,12 @@ async function prepDockerFile(devContainerDockerfilePath, definitionId, repo, re
             devContainerDockerfileModified = devContainerDockerfileModified.replace(/FROM .+:.+/, `FROM ${parentTag}`)
         }
     } else {
-        const expectedRegistry = 'mcr.microsoft.com';
+        // Otherwise update any Dockerfiles that refer to an un-versioned tag of another dev container
+        // to the MAJOR.MINOR version from this release.
+        const expectedRegistry = configUtils.getConfig('stubRegistry', 'mcr.microsoft.com');
         const expectedRegistryPath = configUtils.getConfig('stubRegistryPath', 'vscode/devcontainers');
-        // Otherwise update any Dockerfiles that refer to the expected MCR path with the correct registry and version 
         const fromCaptureGroups = new RegExp(`FROM (${expectedRegistry}/${expectedRegistryPath}/.+:.+)`).exec(devContainerDockerfileRaw);
-        if (fromCaptureGroups) {
+        if (fromCaptureGroups && fromCaptureGroups.length > 0) {
             const fromDefinitionTag = configUtils.getUpdatedTag(
                 fromCaptureGroups[1], 
                 expectedRegistry,

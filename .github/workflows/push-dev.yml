@@ -2,11 +2,11 @@ name: CI & Push "dev"
 
 on: 
   repository_dispatch:
-  #push:
-  #  branches: master
-  #  paths:
-  #    - 'containers/**'
-  #    - 'script-library/**'
+  push:
+    branches: master
+    paths:
+      - 'containers/**'
+      - 'script-library/**'
 
 jobs:
   build:
@@ -34,6 +34,9 @@ jobs:
         # Push dev images and package
         set -e
         GIT_BRANCH=$(echo "${{ github.ref }}" | grep -oP 'refs/(heads|tags)/\K(.+)')
+        if [ "$GIT_BRANCH" == "" ]; then 
+            GIT_BRANCH=master
+        fi
         yarn install
         build/vscdc pack  --release $GIT_BRANCH \
                           --github-repo ${{ github.repository }} \
