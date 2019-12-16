@@ -55,9 +55,7 @@ async function package(repo, release, updateLatest, registry, registryPath, stub
         console.log('(*) Simulating: Skipping package move.');
     } else {
         console.log('(*) Moving package...');
-        // Output filename should use the release vX.X.X like yarn rather than just version like npm
-        // since release tag includes the "v" and this is what is easily available during CI.
-        outputPath = path.join(__dirname, '..', '..', `${packageJson.name}-v${packageJsonVersion}.tgz`);
+        outputPath = path.join(__dirname, '..', '..', `${packageJson.name}-${packageJsonVersion}.tgz`);
         await asyncUtils.rename(path.join(stagingFolder, `${packageJson.name}-${packageJsonVersion}.tgz`), outputPath);
     }
 
