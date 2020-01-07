@@ -3,13 +3,9 @@
  * Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
  *-------------------------------------------------------------------------------------------------------------*/
 
-using System;
-using System.Linq;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Builder;
-using Newtonsoft.Json;
-using Microsoft.AspNetCore.Http;
-using System.IO;
+using Microsoft.Extensions.Hosting;
 
 namespace aspnetapp
 {
@@ -17,16 +13,15 @@ namespace aspnetapp
     {
         public static void Main(string[] args)
         {
-            var host = new WebHostBuilder()
-                .UseKestrel()
-                .UseUrls("http://0.0.0.0:8090")
-                .Configure(app => app.Run(async context => {
-                    await context.Response.WriteAsync("Hello remote world from ASP.NET Core!");
-                }))
-                .Build();
-
-            host.Run();
+            Host
+                .CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(
+                    webBuilder =>
+                    {
+                        webBuilder.UseStartup<Startup>();
+                    })
+                .Build()
+                .Run();
         }
-
     }
 }
