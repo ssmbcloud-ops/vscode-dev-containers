@@ -1,50 +1,26 @@
-#-------------------------------------------------------------------------------------------------------------
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
-#-------------------------------------------------------------------------------------------------------------
+# Add your image here
+ARG VARIANT="buster"
+FROM buildpack-deps:${VARIANT}-curl
 
-# **********************************************************
-# * Note: Using a Dockerfile is optional when using Docker *
-# * Compose but has been included here for completeness.   *
-# **********************************************************
-
-FROM debian:9
-
-# Avoid warnings by switching to noninteractive
-ENV DEBIAN_FRONTEND=noninteractive
-
-# The node image includes a non-root user with sudo access. Use the 
-# "remoteUser" property in devcontainer.json to use it. On Linux, update 
-# these values to ensure the container user's UID/GID matches your local values.
-# See https://aka.ms/vscode-remote/containers/non-root-user for details.
+# Options for setup script
+ARG INSTALL_ZSH="true"
+ARG UPGRADE_PACKAGES="false"
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+# Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
+COPY library-scripts/*.sh library-scripts/*.env /tmp/library-scripts/
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
+    #
+    # ****************************************************************************
+    # * TODO: Add any additional OS packages you want included in the definition *
+    # * here. We want to do this before cleanup to keep the "layer" small.       *
+    # ****************************************************************************
+    # && apt-get -y install --no-install-recommends <your-package-list-here> \
+    #
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
 
-# Configure apt and install packages
-RUN apt-get update \
-    && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
-    #
-    # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
-    && apt-get -y install git iproute2 procps lsb-release \
-    #
-    # *****************************************************
-    # * Add steps for installing needed dependencies here *
-    # *****************************************************
-    #
-    # Create a non-root user
-    && groupadd --gid $USER_GID $USERNAME \
-    && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    # [Optional] Add sudo support for the non-root user
-    && apt-get install -y sudo \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
-    && chmod 0440 /etc/sudoers.d/$USERNAME \
-    #
-    # Clean up
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Switch back to dialog for any ad-hoc use of apt-get
-ENV DEBIAN_FRONTEND=
-
+# [Optional] Uncomment this section to install additional OS packages.
+# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+#     && apt-get -y install --no-install-recommends <your-package-list-here>

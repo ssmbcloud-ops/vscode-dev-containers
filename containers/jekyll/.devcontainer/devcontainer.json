@@ -1,25 +1,32 @@
 {
-	"name": "Jekyll",
-	"dockerFile": "Dockerfile",
+	"name": "Jekyll (Community)",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			// Enable Node.js: pick the latest LTS version
+			"NODE_VERSION": "lts/*"
+		}	
+	},
 
-	// Use 'settings' to set *default* container specific settings.json values on container create. 
-	// You can edit these settings after create using File > Preferences > Settings > Remote.
+	// Set *default* container specific settings.json values on container create.
 	"settings": { 
 		"terminal.integrated.shell.linux": "/bin/bash"
 	},
 
-	// Use 'appPort' to create a container with published ports. If the port isn't working, be sure
-	// your server accepts connections from all interfaces (0.0.0.0 or '*'), not just localhost.
-	// "appPort": ["3000:3000"],
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [],
 
-	// Uncomment the next line to run commands after the container is created.
-	// "postCreateCommand": "cd ${input:projectName} && bundle install",
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [
+		// Jekyll server
+		4000,
+		// Live reload server
+		35729
+	],
 
-	// Uncomment the next line to use a non-root user. On Linux, this will prevent
-	// new files getting created as root, but you may need to update the USER_UID
-	// and USER_GID in .devcontainer/Dockerfile to match your user if not 1000.
-	// "runArgs": [ "-u", "vscode" ],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "sh .devcontainer/post-create.sh",
 
-	// Add the IDs of extensions you want installed when the container is created in the array below.
-	"extensions": []
+	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
 }

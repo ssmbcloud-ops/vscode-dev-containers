@@ -15,24 +15,40 @@ A good definition in this repository will:
 - Solve a common setup or installation challenge
 - Illustrate a unique container runtime configuration
 - Highlight an important tip or trick
-- Or provide an easy to understand template for devlopers that are just getting started with dev containers. 
+- Or provide an easy to understand template for developers that are just getting started with dev containers. 
+- Works on Linux, macOS, and Windows
 
 Since devcontainer.json can be commited to a source code repository, the definitions here are not intended to cover every possible permutation. When thinking about contributing a new dev container definition, consider the following questions:
 
 1. How different is the scenario you are interested in from other dev container definitions in the repository? 
     - Does it drive significantly different extension, runtime, configuration requirements? 
-    - Are the requirements cumbersome install or are they typically things added by a package manager (pip, npm, etc) using an project's manifest file (`package.json`, `requirements.txt`, etc)?
-2. How likely are other developers to find the definition useful on its own? Could the scenario be broaded to help more people?
+    - Are the requirements cumbersome to install or are they typically things added by a package manager (pip, npm, etc) using a project's manifest file (`package.json`, `requirements.txt`, etc)?
+2. How likely are other developers to find the definition useful on its own? Could the scenario be broadened to help more people?
 
-If the definition is too similar others, consider contributing a PR to improve an existing one instead. If the scenario is too specific consider generalizing it and making it more broadly applicable.
+If the definition is too similar to others, consider contributing a PR to improve an existing one instead. If the scenario is too specific consider generalizing it and making it more broadly applicable.
+
+### A note on referenced images and Dockefile contents
+
+One of the things we want to be sure anyone using a definition from this repository is able to do is understand what is inside it. In general, images referenced  by Dockerfiles, Docker Compose files, or devcontainer.json in this repository should reference known base Docker, Microsoft, or runtime/platform community/vendor managed base images. These images are already well maintained, regularly patched, and maintained by the platform/runtime community or vendor. From there you can use a Dockerfile to add any additional contents.
+
+When adding contents to the Dockerfile, use official sources. If you are using something like `curl` or `wget` to download the contents, add a checksum verification if one is available. Using package managers like `apt-get` on Debian/Ubuntu with 3rd party sources can also be a way to do this verification since they require adding the source's signing key.
+
+Note that other definitions in this repository use Debian or Ubuntu bases in the vast majority of cases. We recommend using this as the variation of the base image you use wherever possible so you can avoid questions from developers new to working with Linux.
+
+### Expectations for new definitions
+
+When contributing a new definition, be sure you are also willing to sign up to maintain the definition over time. The likelihood of other maintainers in this repository having the needed knowledge properly maintain your definition is low, so you'll be contacted about PRs and issues raised about them. Please include your GitHub alias (and if desired other contact info) in the README so that you are identified as the maintainer of the definition. You will "@'d" in on PRs and issues raised pertaining to the definition.
+
+Over time, if you no longer want to maintain the definition and do not have a suitable replacement, we can remove it from the repository. Just raise an issue or PR and let us know. This repository's maintainers may also need to do this proactively if an issue is raised that is breaking and we are unable to get a timely response in resolving the issue.
 
 ### Anatomy of a Dev Container Definition
 
-The contents of the folders in the `containers` directory ultimately populate the available definitions list shown in the **Remote-Containers: Add Development Container Configuration Files...** command. To make this work, each folder consists of up to three things:
+The contents of the folders in the `containers` directory ultimately populate the available definitions list shown in the **Remote-Containers: Add Development Container Configuration Files...** command. To make this work, each folder consists of up to three elements:
 
 1. **The container definition itself** - These are the files and folders that will be added to a user's existing project / folder if they select the definition. Typically these files are stored in a `.devcontainer` folder.
 2. **Test assets** - While you are creating your definition, you may need to use a test project to make sure it works as expected. Contributing these files back will also help others that want to contribute to your definition in the future. These files are typically located in a `test-project` folder.
 3. **A `.npmignore` file** - This tells VS Code which files in the folder should be ignored when a user selects it for their project / folder. The file typically lists test assets or folders.
+
 
 ### Creating a new definition
 
@@ -68,40 +84,81 @@ To create a new definition:
 
     See the [VS Code Remote Development documentation](https://aka.ms/vscode-remote/docker) for information on the expected contents of `devcontainer.json` and how it relates to other files listed above.
 
-    Note that any additional assets can be included as needed, but keep in mind that these will overlay on top of an existing project. Keeping these files in the `.devcontainer` folder should reduce the chances of something conflicting but note that any command that are run are relative to the root of the project, so you'll need to include `.devcontainer` in any path references.
+    Note that any additional assets can be included as needed, but keep in mind that these will overlay on top of an existing project. Keeping these files in the `.devcontainer` folder should reduce the chances of something conflicting but note that any commands that are run are relative to the root of the project, so you'll need to include `.devcontainer` in any path references.
 
     Finally, create a `README.md` in the folder with a brief description of the purpose of the container definition and any manual steps required to use it.
 
 4. Update [`.npmignore`](https://docs.npmjs.com/misc/developers#keeping-files-out-of-your-package) if you've added new folders that should be excluded if used. Add anything you don't want copied in to a user's existing project / folder into this file in [glob](https://facelessuser.github.io/wcmatch/glob/) form.
 
+### Why do Dockerfiles in this repository use RUN statements with commands separated by &&?
+
+Each `RUN` statement creates a Docker image "layer". If one `RUN` statement adds in temporary contents, these contents remain in this layer in the image even if they are deleted in a subsequent `RUN`. This means the image takes more storage locally and results in slower image download times if you publish the image to a registry.
+
+So, in short, you want to clean up after you install or configure anything in the same `RUN` statement. To do this, you can either:
+
+1. Use a string of commands that cleans up at the end. e.g.: 
+
+    ```Dockerfile
+    RUN apt-get update && apt-get -y install --no-install-recommends git && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+    ```
+
+    ... or across multiple lines (note the `\` at the end escaping the newline):
+
+    ```Dockerfile
+    RUN apt-get update \
+        && apt-get -y install git \
+        && apt-get autoremove -y \
+        && apt-get clean -y \
+        && rm -rf /var/lib/apt/lists/*
+    ```
+
+2. Put the commands in a script, temporarily copy it into the container, then remove it. e.g.:
+
+    ```Dockerfile
+    COPY ./my-script.sh /tmp/my-script.sh
+    RUN bash /tmp/my-script.sh \
+        && rm -f /tmp/my-script.sh
+    ```
+
+Some other tips:
+
+1. You'd be suprised [how big package lists](https://askubuntu.com/questions/179955/var-lib-apt-lists-is-huge) can get, so be sure to clean these up too. Most Docker images that use Debian / Ubuntu use the following command to clean these up:
+
+    ```
+    rm -rf /var/lib/apt/lists/*
+    ```
+
+    The only downside of doing this is that `apt-get update` has to be executed before you install a packages. However, in most cases adding this package to a Dockerfile is a better choice anyway since this will survive a "rebuild" of the image and the creation of an updated container. 
+
+2. Use the scripts in the [script library](./script-library) in this repository where appropriate. You do not even need to copy the script into your `.devcontainer` folder to use it. See the [README](./script-library) for details. Most existing definitions use the "common" script to ensure things like `git`, a non-root user, and useful command line utilities like `ps`, `ip`, `jq` are present.
+
+3. In all cases, you'll want to pay attention to package caching since this can also take up image space. Typically there is an option for a package manager to not cache when installing that you can use to minimize the size of the image. For example, for Alpine Linux, there's `apk --no-cache`
+
+4. Watch out for the installation of "recommended" packages you don't need. By default, Debian / Ubuntu's `apt-get` installs packages that are commonly used with the one you specified - which in many cases isn't required. You can use `apt-get -y install --no-install-recommends` to avoid this problem.
+
 ### Developing and testing a definition
 
-VS Code Remote provides a straight forward development loop for creating and editing container definitions. Just follow these steps to get started:
+VS Code Remote provides a straightforward development loop for creating and editing container definitions. Just follow these steps to get started:
 
 1. Create a definition folder and open it in VS Code
 2. Edit the contents of the definition
-3. Try it with `kbstyle(F1)` > **Remote-Containers: Reopen Folder in Container**.
+3. Try it with <kbd>F1</kbd> > **Remote-Containers: Reopen Folder in Container**.
 4. On failure:
-   1. `kbstyle(F1)` > **Remote-Containers: Reopen Folder Locally**, which will open a new local window.
+   1. <kbd>F1</kbd> > **Remote-Containers: Reopen Folder Locally**, which will open a new local window.
    2. In this local window: Edit the contents of the `.devcontainer` folder as required.
-   3. Try it again: Go back to the container window, `kbstyle(F1)` > **Developer: Reload Window**.
+   3. Try it again: Go back to the container window, <kbd>F1</kbd> > **Developer: Reload Window**.
    4. Repeat as needed.
 5. If the build was successful, but you want to make more changes:
       1. Edit the contents of the `.devcontainer` folder as required when connected to the container.
-      2. `kbstyle(F1)` > **Remote-Containers: Rebuild Container**.
+      2. <kbd>F1</kbd> > **Remote-Containers: Rebuild Container**.
       3. On failure: Follow the same workflow above.
 
-Note that if you make major changes, Docker may occasionally not pick up your edits. If this happens, you can delete the existing container and image, open the folder locally, and go to step 2 above. Install the [Docker extension](https://marketplace.visualstudio.com/items?itemName=PeterJausovec.vscode-docker) locally (when not in a container) to make this easy
+Note that if you make major changes, Docker may occasionally not pick up your edits. If this happens, you can delete the existing container and image, open the folder locally, and go to step 2 above. Install the [Docker extension](https://marketplace.visualstudio.com/items?itemName=PeterJausovec.vscode-docker) locally (when not in a container) to make this easy.
 
 After you get your container up and running, you can test it by adding test assets / projects into the definition folder and then adding their locations to the `.npmignore` file in [glob](https://facelessuser.github.io/wcmatch/glob/) form relative to the root of the folder. By convention, most definitions place test assets in a `test-project` folder and this path is referenced in the template `.npmignore` files.
 
 Finally, commit your changes and submit a PR - we'll take a look at it, provide any needed feedback, and then merge it in. We appreciate any and all feedback!
-
-### Speeding up container provisioning
-
-While using a `Dockerfile` is a convenient way to get going with a new container definition, this method can slow down the process of creating the dev container since it requires the image be built by anyone using it.  If your definition is stable, we strongly recommend building and publishing your image to [DockerHub](https://hub.docker.com) or [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/) instead. 
-
-Once you've published your container image, just update `devcontainer.json` to reference the image instead of the `Dockerfile`. See `container-templates/image` for an example.
 
 ### Release cadence for new containers or container updates
 
